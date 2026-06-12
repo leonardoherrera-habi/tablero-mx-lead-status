@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -89,7 +89,7 @@
 
     .controls {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 16px;
       margin-bottom: 30px;
       background: var(--bg-primary);
@@ -197,6 +197,7 @@
       width: 100%;
       border-collapse: collapse;
       font-size: 13px;
+      overflow-x: auto;
     }
 
     th {
@@ -283,7 +284,28 @@
   <div class="container">
     <div class="controls">
       <div class="control-group">
-        <label for="filtro-fuente">Filtrar por Fuente</label>
+        <label for="periodo">Período</label>
+        <select id="periodo" onchange="actualizarPeriodo()">
+          <option value="hoy">Hoy</option>
+          <option value="ayer">Ayer</option>
+          <option value="7dias">Últimos 7 días</option>
+          <option value="mes" selected>Último mes</option>
+          <option value="personalizado">Personalizado</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="fecha-inicio">Desde</label>
+        <input type="date" id="fecha-inicio" onchange="aplicarFiltros()">
+      </div>
+
+      <div class="control-group">
+        <label for="fecha-fin">Hasta</label>
+        <input type="date" id="fecha-fin" onchange="aplicarFiltros()">
+      </div>
+
+      <div class="control-group">
+        <label for="filtro-fuente">Fuente</label>
         <select id="filtro-fuente" onchange="aplicarFiltros()">
           <option value="">Todas</option>
           <option value="WEB">WEB</option>
@@ -293,7 +315,7 @@
       </div>
 
       <div class="control-group">
-        <label for="filtro-razón">Filtrar por Razón de Rechazo</label>
+        <label for="filtro-razón">Razón de Rechazo</label>
         <select id="filtro-razón" onchange="aplicarFiltros()">
           <option value="">Todas</option>
           <option value="Duplicado">Duplicado</option>
@@ -301,11 +323,14 @@
           <option value="Precio elevado">Precio elevado</option>
           <option value="Datos incompletos">Datos incompletos</option>
           <option value="Pendiente">Pendiente</option>
+          <option value="Calificado">Calificado</option>
+          <option value="Antigüedad propiedad">Antigüedad propiedad</option>
+          <option value="Zona restringida">Zona restringida</option>
         </select>
       </div>
 
       <div class="control-group">
-        <button onclick="limpiarFiltros()" style="margin-top: 22px; width: 100%;">Limpiar Filtros</button>
+        <button onclick="limpiarFiltros()" style="margin-top: 22px; width: 100%;">Limpiar</button>
       </div>
     </div>
 
@@ -330,7 +355,7 @@
     </div>
 
     <div class="section">
-      <div class="section-title">🔍 Análisis Granular: Fuente × Sub-fuente × Plataforma × Campaña</div>
+      <div class="section-title">🔍 Análisis Granular: Fuente × Sub-fuente × Campaña</div>
       <table>
         <thead>
           <tr>
@@ -352,15 +377,84 @@
   </div>
 
   <script>
-    const DATOS_BRUTOS = [
-      {"seccion":"Análisis Granular","fuente":"WEB","mkt_channel_medium":"WEB Paid","creados":1147,"calificados":446,"rechazados":595,"pct_calificados":38.88,"top_razon_rechazo":"Duplicado"},
-      {"seccion":"Análisis Granular","fuente":"Lead Forms","mkt_channel_medium":"Lead Forms Paid","creados":1070,"calificados":130,"rechazados":883,"pct_calificados":12.15,"top_razon_rechazo":"Pendiente"},
-      {"seccion":"Análisis Granular","fuente":"Estudio Inmueble","mkt_channel_medium":"Estudio Inmueble Paid","creados":955,"calificados":293,"rechazados":441,"pct_calificados":30.68,"top_razon_rechazo":"Duplicado"},
-      {"seccion":"Análisis Granular","fuente":"Lead Forms","mkt_channel_medium":"Lead Forms Paid","creados":866,"calificados":153,"rechazados":662,"pct_calificados":17.67,"top_razon_rechazo":"Fuera de zona"},
-      {"seccion":"Análisis Granular","fuente":"Lead Forms","mkt_channel_medium":"Lead Forms Paid","creados":844,"calificados":161,"rechazados":646,"pct_calificados":19.08,"top_razon_rechazo":"Duplicado"}
-    ];
+    const DATOS_BRUTOS = [{"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 1147, "calificados": 446, "rechazados": 595, "pct_calificados": 38.88, "top_razon_rechazo": "Duplicado"}, {"seccion": "Análisis Granular", "fuente": "Lead Forms", "mkt_channel_medium": "Lead Forms Paid", "creados": 1070, "calificados": 130, "rechazados": 883, "pct_calificados": 12.15, "top_razon_rechazo": "Pendiente"}, {"seccion": "Análisis Granular", "fuente": "Estudio Inmueble", "mkt_channel_medium": "Estudio Inmueble Paid", "creados": 955, "calificados": 293, "rechazados": 441, "pct_calificados": 30.68, "top_razon_rechazo": "Duplicado"}, {"seccion": "Análisis Granular", "fuente": "Lead Forms", "mkt_channel_medium": "Lead Forms Paid", "creados": 866, "calificados": 153, "rechazados": 662, "pct_calificados": 17.67, "top_razon_rechazo": "Fuera de zona"}, {"seccion": "Análisis Granular", "fuente": "Lead Forms", "mkt_channel_medium": "Lead Forms Paid", "creados": 844, "calificados": 161, "rechazados": 646, "pct_calificados": 19.08, "top_razon_rechazo": "Duplicado"}, {"seccion": "Análisis Granular", "fuente": "Lead Forms", "mkt_channel_medium": "Lead Forms Paid", "creados": 798, "calificados": 153, "rechazados": 609, "pct_calificados": 19.17, "top_razon_rechazo": "Pendiente"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 442, "calificados": 178, "rechazados": 233, "pct_calificados": 40.27, "top_razon_rechazo": "Duplicado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 415, "calificados": 169, "rechazados": 225, "pct_calificados": 40.72, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 405, "calificados": 176, "rechazados": 202, "pct_calificados": 43.46, "top_razon_rechazo": "Duplicado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 343, "calificados": 161, "rechazados": 163, "pct_calificados": 46.94, "top_razon_rechazo": "Duplicado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 341, "calificados": 112, "rechazados": 207, "pct_calificados": 32.84, "top_razon_rechazo": "Duplicado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 331, "calificados": 128, "rechazados": 172, "pct_calificados": 38.67, "top_razon_rechazo": "Duplicado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 223, "calificados": 100, "rechazados": 110, "pct_calificados": 44.84, "top_razon_rechazo": "Duplicado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 167, "calificados": 58, "rechazados": 98, "pct_calificados": 34.73, "top_razon_rechazo": "Fuera de zona"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 163, "calificados": 78, "rechazados": 77, "pct_calificados": 47.85, "top_razon_rechazo": "Fuera de zona"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 153, "calificados": 96, "rechazados": 50, "pct_calificados": 62.75, "top_razon_rechazo": "Fuera de zona"}, {"seccion": "Análisis Granular", "fuente": "Estudio Inmueble", "mkt_channel_medium": "Estudio Inmueble Paid", "creados": 125, "calificados": 47, "rechazados": 52, "pct_calificados": 37.6, "top_razon_rechazo": "Duplicado"}, {"seccion": "Análisis Granular", "fuente": "Lead Forms", "mkt_channel_medium": "Lead Forms Paid", "creados": 124, "calificados": 3, "rechazados": 112, "pct_calificados": 2.42, "top_razon_rechazo": "Datos incompletos"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 99, "calificados": 42, "rechazados": 55, "pct_calificados": 42.42, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 97, "calificados": 47, "rechazados": 43, "pct_calificados": 48.45, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Análisis Granular", "fuente": "Lead Forms", "mkt_channel_medium": "Lead Forms Paid", "creados": 81, "calificados": 22, "rechazados": 52, "pct_calificados": 27.16, "top_razon_rechazo": "Pendiente"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 74, "calificados": 38, "rechazados": 31, "pct_calificados": 51.35, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Referral", "creados": 48, "calificados": 34, "rechazados": 13, "pct_calificados": 70.83, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 38, "calificados": 20, "rechazados": 15, "pct_calificados": 52.63, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Community", "creados": 37, "calificados": 14, "rechazados": 21, "pct_calificados": 37.84, "top_razon_rechazo": "Calificado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 32, "calificados": 7, "rechazados": 22, "pct_calificados": 21.88, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Análisis Granular", "fuente": "Estudio Inmueble", "mkt_channel_medium": "WEB Paid", "creados": 28, "calificados": 14, "rechazados": 9, "pct_calificados": 50.0, "top_razon_rechazo": "Calificado"}, {"seccion": "Análisis Granular", "fuente": "Lead Forms", "mkt_channel_medium": "Lead Forms Paid", "creados": 26, "calificados": 4, "rechazados": 21, "pct_calificados": 15.38, "top_razon_rechazo": "Datos incompletos"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 24, "calificados": 11, "rechazados": 11, "pct_calificados": 45.83, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 23, "calificados": 13, "rechazados": 8, "pct_calificados": 56.52, "top_razon_rechazo": "Calificado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 22, "calificados": 8, "rechazados": 12, "pct_calificados": 36.36, "top_razon_rechazo": "Duplicado"}, {"seccion": "Análisis Granular", "fuente": "Estudio Inmueble", "mkt_channel_medium": "WEB Paid", "creados": 17, "calificados": 8, "rechazados": 7, "pct_calificados": 47.06, "top_razon_rechazo": "Antigüedad propiedad"}, {"seccion": "Análisis Granular", "fuente": "Estudio Inmueble", "mkt_channel_medium": "WEB Paid", "creados": 12, "calificados": 3, "rechazados": 4, "pct_calificados": 25.0, "top_razon_rechazo": "Antigüedad propiedad"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "Lead Forms Paid", "creados": 10, "calificados": 3, "rechazados": 7, "pct_calificados": 30.0, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 9, "calificados": 6, "rechazados": 3, "pct_calificados": 66.67, "top_razon_rechazo": "Calificado"}, {"seccion": "Análisis Granular", "fuente": "Estudio Inmueble", "mkt_channel_medium": "Estudio Inmueble Community", "creados": 8, "calificados": 1, "rechazados": 5, "pct_calificados": 12.5, "top_razon_rechazo": "Fuera de zona"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 7, "calificados": 1, "rechazados": 4, "pct_calificados": 14.29, "top_razon_rechazo": "Datos de dirección inválidos"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 7, "calificados": 5, "rechazados": 2, "pct_calificados": 71.43, "top_razon_rechazo": "Calificado"}, {"seccion": "Análisis Granular", "fuente": "Estudio Inmueble", "mkt_channel_medium": "WEB Paid", "creados": 6, "calificados": 3, "rechazados": 1, "pct_calificados": 50.0, "top_razon_rechazo": "Calificado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 5, "calificados": 1, "rechazados": 4, "pct_calificados": 20.0, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 5, "calificados": 2, "rechazados": 2, "pct_calificados": 40.0, "top_razon_rechazo": "Calificado"}, {"seccion": "Análisis Granular", "fuente": "Estudio Inmueble", "mkt_channel_medium": "WEB Paid", "creados": 4, "calificados": 0, "rechazados": 4, "pct_calificados": 0.0, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Análisis Granular", "fuente": "Estudio Inmueble", "mkt_channel_medium": "WEB Paid", "creados": 3, "calificados": 0, "rechazados": 2, "pct_calificados": 0.0, "top_razon_rechazo": "Duplicado"}, {"seccion": "Análisis Granular", "fuente": "Estudio Inmueble", "mkt_channel_medium": "WEB Paid", "creados": 3, "calificados": 0, "rechazados": 3, "pct_calificados": 0.0, "top_razon_rechazo": "Datos de dirección inválidos"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 2, "calificados": 1, "rechazados": 1, "pct_calificados": 50.0, "top_razon_rechazo": "Calificado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 2, "calificados": 1, "rechazados": 1, "pct_calificados": 50.0, "top_razon_rechazo": "Calificado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Blog", "creados": 2, "calificados": 2, "rechazados": 0, "pct_calificados": 100.0, "top_razon_rechazo": "Calificado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 2, "calificados": 2, "rechazados": 0, "pct_calificados": 100.0, "top_razon_rechazo": "Calificado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 2, "calificados": 1, "rechazados": 0, "pct_calificados": 50.0, "top_razon_rechazo": "Otro (estado_id: 39)"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "Brand", "creados": 1, "calificados": 0, "rechazados": 0, "pct_calificados": 0.0, "top_razon_rechazo": "Pendiente"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "Estudio Inmueble Paid", "creados": 1, "calificados": 0, "rechazados": 1, "pct_calificados": 0.0, "top_razon_rechazo": "Duplicado"}, {"seccion": "Análisis Granular", "fuente": "Estudio Inmueble", "mkt_channel_medium": "Estudio Inmueble Blog", "creados": 1, "calificados": 0, "rechazados": 1, "pct_calificados": 0.0, "top_razon_rechazo": "Fuera de zona"}, {"seccion": "Análisis Granular", "fuente": "Estudio Inmueble", "mkt_channel_medium": "WEB Paid", "creados": 1, "calificados": 1, "rechazados": 0, "pct_calificados": 100.0, "top_razon_rechazo": "Calificado"}, {"seccion": "Análisis Granular", "fuente": "Estudio Inmueble", "mkt_channel_medium": "WEB Paid", "creados": 1, "calificados": 0, "rechazados": 0, "pct_calificados": 0.0, "top_razon_rechazo": "Otro (estado_id: 65)"}, {"seccion": "Análisis Granular", "fuente": "Estudio Inmueble", "mkt_channel_medium": "WEB Paid", "creados": 1, "calificados": 0, "rechazados": 0, "pct_calificados": 0.0, "top_razon_rechazo": "Otro (estado_id: 65)"}, {"seccion": "Análisis Granular", "fuente": "Estudio Inmueble", "mkt_channel_medium": "WEB Paid", "creados": 1, "calificados": 0, "rechazados": 1, "pct_calificados": 0.0, "top_razon_rechazo": "Fuera de zona"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 1, "calificados": 0, "rechazados": 1, "pct_calificados": 0.0, "top_razon_rechazo": "Duplicado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB SAC", "creados": 1, "calificados": 0, "rechazados": 1, "pct_calificados": 0.0, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Análisis Granular", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 1, "calificados": 0, "rechazados": 1, "pct_calificados": 0.0, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Análisis Granular", "fuente": "Estudio Inmueble", "mkt_channel_medium": "WEB Paid", "creados": 1, "calificados": 0, "rechazados": 0, "pct_calificados": 0.0, "top_razon_rechazo": "Otro (estado_id: 65)"}, {"seccion": "Fuente × Sub-fuente", "fuente": "WEB", "mkt_channel_medium": "WEB Paid", "creados": 4582, "calificados": 1908, "rechazados": 2348, "pct_calificados": 41.64, "top_razon_rechazo": "Duplicado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "Lead Forms", "mkt_channel_medium": "Lead Forms Paid", "creados": 3809, "calificados": 626, "rechazados": 2985, "pct_calificados": 16.43, "top_razon_rechazo": "Duplicado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "Propiedades", "mkt_channel_medium": "Propiedades Direct", "creados": 2814, "calificados": 20, "rechazados": 1220, "pct_calificados": 0.71, "top_razon_rechazo": "Duplicado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "WEB", "mkt_channel_medium": "WEB Direct", "creados": 1105, "calificados": 385, "rechazados": 655, "pct_calificados": 34.84, "top_razon_rechazo": "Duplicado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "Estudio Inmueble", "mkt_channel_medium": "Estudio Inmueble Paid", "creados": 1080, "calificados": 340, "rechazados": 493, "pct_calificados": 31.48, "top_razon_rechazo": "Duplicado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "Estudio Inmueble", "mkt_channel_medium": "Estudio Inmueble Direct", "creados": 403, "calificados": 82, "rechazados": 237, "pct_calificados": 20.35, "top_razon_rechazo": "Duplicado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "Lead Forms", "mkt_channel_medium": "Leadform Paid", "creados": 230, "calificados": 15, "rechazados": 213, "pct_calificados": 6.52, "top_razon_rechazo": "Fuera de zona"}, {"seccion": "Fuente × Sub-fuente", "fuente": "Broker", "mkt_channel_medium": "Broker Direct", "creados": 206, "calificados": 150, "rechazados": 48, "pct_calificados": 72.82, "top_razon_rechazo": "Datos incompletos"}, {"seccion": "Fuente × Sub-fuente", "fuente": "WEB", "mkt_channel_medium": "WEB SAC", "creados": 196, "calificados": 78, "rechazados": 107, "pct_calificados": 39.8, "top_razon_rechazo": "Duplicado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "Estudio Inmueble", "mkt_channel_medium": "WEB Paid", "creados": 78, "calificados": 29, "rechazados": 31, "pct_calificados": 37.18, "top_razon_rechazo": "Duplicado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "WEB", "mkt_channel_medium": "WEB PCOM", "creados": 69, "calificados": 12, "rechazados": 54, "pct_calificados": 17.39, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "WEB", "mkt_channel_medium": "WEB Referral", "creados": 48, "calificados": 34, "rechazados": 13, "pct_calificados": 70.83, "top_razon_rechazo": "Duplicado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "WEB", "mkt_channel_medium": "WEB Community", "creados": 37, "calificados": 14, "rechazados": 21, "pct_calificados": 37.84, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "WEB", "mkt_channel_medium": "FB_Habi_Convertionweb_Nacional_Testing_Adgroup1_2dejunio16dejuniode2026", "creados": 32, "calificados": 4, "rechazados": 26, "pct_calificados": 12.5, "top_razon_rechazo": "Fuera de zona"}, {"seccion": "Fuente × Sub-fuente", "fuente": "WEB", "mkt_channel_medium": "FB_Habi_Convertionweb_Nacional_Testing_Adgroup2_2dejunio16dejuniode2026", "creados": 26, "calificados": 2, "rechazados": 23, "pct_calificados": 7.69, "top_razon_rechazo": "Fuera de zona"}, {"seccion": "Fuente × Sub-fuente", "fuente": "WEB", "mkt_channel_medium": "Lead Forms Paid", "creados": 10, "calificados": 3, "rechazados": 7, "pct_calificados": 30.0, "top_razon_rechazo": "Calificado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "Estudio Inmueble", "mkt_channel_medium": "mex-habimetro-organic-community-web-facebook-withoutgoal-organic-national-trespuntos130526", "creados": 8, "calificados": 2, "rechazados": 5, "pct_calificados": 25.0, "top_razon_rechazo": "Otro (estado_id: 65)"}, {"seccion": "Fuente × Sub-fuente", "fuente": "Estudio Inmueble", "mkt_channel_medium": "Estudio Inmueble Community", "creados": 8, "calificados": 1, "rechazados": 5, "pct_calificados": 12.5, "top_razon_rechazo": "Otro (estado_id: 65)"}, {"seccion": "Fuente × Sub-fuente", "fuente": "Comercial", "mkt_channel_medium": "xxxxx", "creados": 7, "calificados": 4, "rechazados": 3, "pct_calificados": 57.14, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "WEB", "mkt_channel_medium": "WEB Blog", "creados": 4, "calificados": 2, "rechazados": 2, "pct_calificados": 50.0, "top_razon_rechazo": "Calificado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "WEB", "mkt_channel_medium": "120238661311670238", "creados": 1, "calificados": 0, "rechazados": 1, "pct_calificados": 0.0, "top_razon_rechazo": "Duplicado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "Estudio Inmueble", "mkt_channel_medium": "WEB PCOM", "creados": 1, "calificados": 0, "rechazados": 1, "pct_calificados": 0.0, "top_razon_rechazo": "Duplicado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "Comercial", "mkt_channel_medium": "Comercial Direct", "creados": 1, "calificados": 1, "rechazados": 0, "pct_calificados": 100.0, "top_razon_rechazo": "Calificado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "WEB", "mkt_channel_medium": "prueba_utm", "creados": 1, "calificados": 0, "rechazados": 0, "pct_calificados": 0.0, "top_razon_rechazo": "Otro (estado_id: 39)"}, {"seccion": "Fuente × Sub-fuente", "fuente": "WEB", "mkt_channel_medium": "Estudio Inmueble Paid", "creados": 1, "calificados": 0, "rechazados": 1, "pct_calificados": 0.0, "top_razon_rechazo": "Duplicado"}, {"seccion": "Fuente × Sub-fuente", "fuente": "WEB", "mkt_channel_medium": "Brand", "creados": 1, "calificados": 0, "rechazados": 0, "pct_calificados": 0.0, "top_razon_rechazo": "Pendiente"}, {"seccion": "Fuente × Sub-fuente", "fuente": "Estudio Inmueble", "mkt_channel_medium": "Estudio Inmueble Blog", "creados": 1, "calificados": 0, "rechazados": 1, "pct_calificados": 0.0, "top_razon_rechazo": "Fuera de zona"}, {"seccion": "Fuente × Sub-fuente", "fuente": "Estudio Inmueble", "mkt_channel_medium": "WEB SAC", "creados": 1, "calificados": 1, "rechazados": 0, "pct_calificados": 100.0, "top_razon_rechazo": "Calificado"}, {"seccion": "Razones Rechazo", "fuente": "Precio elevado", "mkt_channel_medium": "N/A", "creados": 3133, "calificados": 0, "rechazados": 3133, "pct_calificados": 36.86, "top_razon_rechazo": "Precio elevado"}, {"seccion": "Razones Rechazo", "fuente": "Datos incompletos", "mkt_channel_medium": "N/A", "creados": 2306, "calificados": 0, "rechazados": 2306, "pct_calificados": 27.13, "top_razon_rechazo": "Datos incompletos"}, {"seccion": "Razones Rechazo", "fuente": "Datos de dirección inválidos", "mkt_channel_medium": "N/A", "creados": 930, "calificados": 0, "rechazados": 930, "pct_calificados": 10.94, "top_razon_rechazo": "Datos de dirección inválidos"}, {"seccion": "Razones Rechazo", "fuente": "Duplicado", "mkt_channel_medium": "N/A", "creados": 875, "calificados": 0, "rechazados": 875, "pct_calificados": 10.29, "top_razon_rechazo": "Duplicado"}, {"seccion": "Razones Rechazo", "fuente": "Fuera de zona", "mkt_channel_medium": "N/A", "creados": 783, "calificados": 0, "rechazados": 783, "pct_calificados": 9.21, "top_razon_rechazo": "Fuera de zona"}, {"seccion": "Razones Rechazo", "fuente": "Antigüedad propiedad", "mkt_channel_medium": "N/A", "creados": 206, "calificados": 0, "rechazados": 206, "pct_calificados": 2.42, "top_razon_rechazo": "Antigüedad propiedad"}, {"seccion": "Razones Rechazo", "fuente": "Otro (estado_id: 61)", "mkt_channel_medium": "N/A", "creados": 205, "calificados": 0, "rechazados": 205, "pct_calificados": 2.41, "top_razon_rechazo": "Otro (estado_id: 61)"}, {"seccion": "Razones Rechazo", "fuente": "Zona restringida", "mkt_channel_medium": "N/A", "creados": 62, "calificados": 0, "rechazados": 62, "pct_calificados": 0.73, "top_razon_rechazo": "Zona restringida"}, {"seccion": "Resumen Ejecutivo", "fuente": "N/A", "mkt_channel_medium": "N/A", "creados": 14760, "calificados": 3713, "rechazados": 8500, "pct_calificados": 25.16, "top_razon_rechazo": "N/A"}];
 
     let datosFiltrados = [...DATOS_BRUTOS];
+    let fechasDisponibles = {};
+
+    function inicializar() {
+      // Extraer fechas únicas
+      const fechas = [...new Set(DATOS_BRUTOS.map(d => d.seccion ? null : d))].filter(Boolean);
+      
+      actualizarPeriodo();
+      cargarDatos();
+    }
+
+    function actualizarPeriodo() {
+      const periodo = document.getElementById('periodo').value;
+      const hoy = new Date();
+      let inicio, fin;
+
+      // Desactivar campos de fecha si no es personalizado
+      if (periodo !== 'personalizado') {
+        document.getElementById('fecha-inicio').disabled = true;
+        document.getElementById('fecha-fin').disabled = true;
+      } else {
+        document.getElementById('fecha-inicio').disabled = false;
+        document.getElementById('fecha-fin').disabled = false;
+        return;
+      }
+
+      switch (periodo) {
+        case 'hoy':
+          inicio = new Date(hoy);
+          fin = new Date(hoy);
+          break;
+        case 'ayer':
+          inicio = new Date(hoy.getTime() - 1 * 24 * 60 * 60 * 1000);
+          fin = new Date(hoy.getTime() - 1 * 24 * 60 * 60 * 1000);
+          break;
+        case '7dias':
+          inicio = new Date(hoy.getTime() - 7 * 24 * 60 * 60 * 1000);
+          fin = new Date(hoy.getTime() - 1 * 24 * 60 * 60 * 1000);
+          break;
+        case 'mes':
+          const mesAnterior = new Date(hoy);
+          mesAnterior.setMonth(hoy.getMonth() - 1);
+          inicio = new Date(mesAnterior.getFullYear(), mesAnterior.getMonth(), 1);
+          fin = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
+          break;
+        default:
+          return;
+      }
+
+      document.getElementById('fecha-inicio').value = formatDate(inicio);
+      document.getElementById('fecha-fin').value = formatDate(fin);
+      aplicarFiltros();
+    }
+
+    function formatDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function aplicarFiltros() {
+      const fechaInicio = document.getElementById('fecha-inicio').value;
+      const fechaFin = document.getElementById('fecha-fin').value;
+      const fuente = document.getElementById('filtro-fuente').value;
+      const razon = document.getElementById('filtro-razón').value;
+
+      datosFiltrados = DATOS_BRUTOS.filter(row => {
+        const matchFecha = (!fechaInicio || !fechaFin) || true; // Sin filtro de fecha por ahora
+        const matchFuente = !fuente || row.fuente === fuente;
+        const matchRazon = !razon || row.top_razon_rechazo === razon;
+        return matchFecha && matchFuente && matchRazon;
+      });
+
+      cargarDatos();
+    }
 
     function cargarDatos() {
       const tbody = document.getElementById('tabla-datos');
@@ -397,23 +491,12 @@
       document.getElementById('fecha-update').textContent = new Date().toLocaleString('es-MX');
     }
 
-    function aplicarFiltros() {
-      const fuente = document.getElementById('filtro-fuente').value;
-      const razon = document.getElementById('filtro-razón').value;
-
-      datosFiltrados = DATOS_BRUTOS.filter(row => {
-        const matchFuente = !fuente || row.fuente === fuente;
-        const matchRazon = !razon || row.top_razon_rechazo === razon;
-        return matchFuente && matchRazon;
-      });
-
-      cargarDatos();
-    }
-
     function limpiarFiltros() {
+      document.getElementById('periodo').value = 'mes';
       document.getElementById('filtro-fuente').value = '';
       document.getElementById('filtro-razón').value = '';
       datosFiltrados = [...DATOS_BRUTOS];
+      actualizarPeriodo();
       cargarDatos();
     }
 
@@ -440,7 +523,7 @@
       document.documentElement.style.colorScheme = current === 'dark' ? 'light' : 'dark';
     }
 
-    document.addEventListener('DOMContentLoaded', cargarDatos);
+    document.addEventListener('DOMContentLoaded', inicializar);
   </script>
 </body>
 </html>
