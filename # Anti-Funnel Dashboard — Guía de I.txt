@@ -1,0 +1,237 @@
+# Anti-Funnel Dashboard — Guía de Integración
+
+## 📋 Descripción General
+
+Este dashboard analiza **dónde se atascan los leads** en el funnel de calificación y **por qué no se califican**.
+
+**Estructuras principales:**
+- Query SQL (BigQuery) → Extrae datos de leads + estados + razones de rechazo
+- Dashboard HTML/CSS/JS → Interfaz interactiva con filtros y visualizaciones
+
+---
+
+## 🔧 Paso 1: Validar la Query SQL
+
+### Ubicación
+`query_anti_funnel_mexico.sql`
+
+### Variables ajustables
+```sql
+DECLARE fecha_inicio DATE DEFAULT DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY);
+DECLARE fecha_fin DATE DEFAULT DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY);
+```
+
+Cambia los intervalos según necesites:
+- **Hoy:** `INTERVAL 0 DAY` a `INTERVAL 0 DAY`
+- **Ayer:** `INTERVAL 1 DAY` a `INTERVAL 1 DAY`
+- **Últimos 7 días:** `INTERVAL 7 DAY` a `INTERVAL 1 DAY`
+- **Última semana:** Calcula con lógica de ISO weeks
+- **Personalizado:** Cambia las fechas manualmente
+
+### Tablas de entrada (verificar acceso)
+- `papyrus-data-mx.habi_wh_bi.tabla_inmuebles_general` — Leads y estados
+- `sellers-main-prod.bi_mx.registro_unico_utm_mkt_mexico` — UTM + plataforma + inversión
+- `sellers-main-prod.hubspot.deals` — Estados finales de deals
+
+### Mapeo de razones de rechazo (estados de HubSpot)
+
+La query mapea `id_ultimo_estado` a razones legibles:
+
+| Estado ID | Razón Rechazo |
+|-----------|---|
+| 1 | Duplicado |
+| 3 | Fuera de zona |
+| 7 | Datos incompletos |
+| 10 | Precio elevado |
+| 16 | Antigüedad propiedad |
+| 33 | Datos de dirección inválidos |
+| 38 | Inmueble no elegible |
+| 55 | Tipo propiedad no elegible |
+| 56 | Zona restringida |
+| 20, 63 | Calificado ✅ |
+
+**Si necesitas agregar nuevas razones:**
+1. Identifica el `id_ultimo_estado` de HubSpot
+2. Añade una línea al CASE en la CTE `rejection_mapping`
+3. Incluye en la sección `estado_categorizado` si es rechazo/pendiente
+
+---
+
+## 📊 Paso 2: Exportar datos de BigQuery
+
+### Opción A: Scheduled query + Cloud Storage (recomendado)
+1. Crea una scheduled query en BigQuery
+2. Exporta a CSV en Cloud Storage cada día a las 06:00 AM
+3. Configura CORS en Cloud Storage
+4. El dashboard carga los datos via `fetch()`
+
+### Opción B: Directa via BigQuery API
+```javascript
+// En el dashboard, usar Google Cloud Client Library
+async function cargarDatosDesdeQuery() {
+  const client = new BigQuery();
+  const query = await client.query({
+    query: `SELECT ... FROM ...`,
+    location: 'us-west1',
+  });
+  return query[0]; // Array de resultados
+}
+```
+
+### Opción C: Manual (para empezar)
+1. Ejecuta la query en BigQuery console
+2. Exporta a CSV (`bq query --format=csv > datos.csv`)
+3. Copia el contenido en un JSON dentro del HTML o en `datos.json`
+
+---
+
+## 💾 Paso 3: Cargar datos en el dashboard
+
+### Estructura esperada del CSV/JSON
+
+```csv
+fecha_creacion,fuente,mkt_channel_medium,plataforma,campana,creados,calificados,rechazados,pct_calificados,razon_rechazo,inversion,cpm_lead,cp_calificado
+2026-06-10,WEB,Paid,Google,Brand Campaign,85,38,44,44.7%,Fuera de zona,2550,30,67.11
+```
+
+### Implementación: Agregar endpoint de datos al HTML
+
+Opción simple: Embeber JSON en el HTML
+```html
+<script>
+  const DATOS = [
+    { fuente: "WEB", mkt_channel_medium: "Paid", creados: 120, calificados: 52, pct_calificados: 43.3, inversion: 4200 },
+    { fuente: "Estudio Inmueble", mkt_channel_medium: "Leadform Paid", creados: 180, calificados: 78, pct_calificados: 43.3, inversion: 5840 },
+  ];
+
+  function cargarDatos() {
+    // Poblar tablas con DATOS
+    poblarTabla(DATOS, 'tabla-fuente-subfuente');
+    calcularResumenEjecutivo(DATOS);
+  }
+
+  cargarDatos();
+</script>
+```
+
+Opción avanzada: Conectar con API
+```javascript
+async function cargarDatos(fechaInicio, fechaFin, fuente, plataforma) {
+  const response = await fetch('/api/anti-funnel', {
+    method: 'POST',
+    body: JSON.stringify({ fechaInicio, fechaFin, fuente, plataforma })
+  });
+  const datos = await response.json();
+  poblarTablas(datos);
+}
+```
+
+---
+
+## 🌐 Paso 4: Desplegar en GitHub Pages
+
+### Estructura del repo
+```
+tablero-mx-lead-status/
+├── index.html              # Dashboard principal
+├── data/
+│   └── datos-2026.json    # Datos precargados (opcional)
+├── css/
+│   └── styles.css         # Estilos (opcional, por ahora inline)
+├── js/
+│   └── dashboard.js       # Lógica de filtros (opcional)
+├── sql/
+│   └── query.sql          # Query de referencia
+└── README.md              # Documentación
+```
+
+### Comando de publicación
+```bash
+cd C:\Users\leonardoherrera_tuha\habi\tablero-mx-lead-status
+git add .
+git commit -m "Add anti-funnel dashboard with rejection analysis"
+git push origin main
+```
+
+### URL en producción
+`https://leonardoherrera-habi.github.io/tablero-mx-lead-status/`
+
+---
+
+## 🎯 Filtros implementados
+
+| Filtro | Valores |
+|--------|---------|
+| **Periodo** | Hoy, Ayer, Últimos 7d, Última semana, Último mes, Personalizado |
+| **Fuente** | WEB, Estudio Inmueble, Lead Forms, Broker, Comercial, Propiedades |
+| **Plataforma** | Google, Facebook, Bing |
+| **Rango de fechas** | Personalizado (date picker) |
+
+---
+
+## 🚀 Próximos pasos
+
+### Fase 1 (MVP - esta semana)
+- [ ] Validar query SQL en BigQuery
+- [ ] Exportar datos de ejemplo
+- [ ] Embeber JSON en dashboard HTML
+- [ ] Publicar en GitHub Pages
+- [ ] Validar visual en navegador
+
+### Fase 2 (Mejoras - próxima semana)
+- [ ] Conectar con API backend para datos en tiempo real
+- [ ] Agregar gráficos interactivos (Chart.js, D3)
+- [ ] Exportar a CSV desde el dashboard
+- [ ] Scheduled reports vía email
+- [ ] Configurar para Colombia (mismo template)
+
+### Fase 3 (Analytics)
+- [ ] Correlacionar rechazo con inversión pagada
+- [ ] Identificar campañas "tóxicas" (alto rechazo/inversión)
+- [ ] Trending: razones de rechazo por semana
+- [ ] Comparativa México vs Colombia
+
+---
+
+## 📞 Troubleshooting
+
+### "La query tarda mucho"
+- Añade índices en `tabla_inmuebles_general(fecha_creacion, fuente)`
+- Particiona la tabla por `fecha_creacion`
+- Reduce el rango de fechas en desarrollo
+
+### "Los datos no coinciden con el otro tablero"
+- Verifica la definición de `estado_categorizado`
+- Compara `fecha_creacion` vs `fecha_a_pricing` (la query usa creación)
+- Revisa que los CTEs estén calculando bien con `SELECT * FROM rejection_mapping LIMIT 100`
+
+### "¿Cómo agrego más razones de rechazo?"
+1. Identifica el `id_ultimo_estado` de HubSpot que falta
+2. En la CTE `rejection_mapping`, añade una línea al CASE
+3. Actualiza la tabla de referencia arriba
+4. Redeploy
+
+---
+
+## 📚 Referencias
+
+- **Tablero de Camilo (Funnel):** https://camilootoya-habi.github.io/tableros-marketing-habi/tablero-marketing/
+- **Tu tablero Paid Media:** https://leonardoherrera-habi.github.io/tablero-mx-paid/
+- **Hub de tableros:** https://leonardoherrera-habi.github.io/
+- **Repo de Camilo:** https://github.com/camilootoya-habi/tableros-marketing-habi
+
+---
+
+## 💡 Preguntas frecuentes
+
+**P: ¿Por qué excluyen el día actual?**
+R: Porque los datos están incompletos. Los leads creados hoy aún no han sido evaluados por los backbones.
+
+**P: ¿Cómo se conecta con el sheet de anti-funnel existente?**
+R: Este dashboard es la versión mejorada y automatizada. El sheet se puede deprecar una vez validemos los números.
+
+**P: ¿Qué pasa con leads rechazados, luego calificados de nuevo?**
+R: Hoy los contagiamos con el **último estado**. Si necesitas histórico, requiere refactorización del modelo.
+
+**P: ¿Cómo manejo duplicados entre México y Colombia?**
+R: La query filtra por `g.fuente IN (...)` de México. Para Colombia, clona el dashboard con tabla diferente: `tabla_inmuebles_general_col` (verificar nombre exacto en BQ).

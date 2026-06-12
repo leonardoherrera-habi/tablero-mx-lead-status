@@ -1,1 +1,446 @@
- 
+ <!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anti-Funnel: Lead Status — México</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f5;
+      --bg-tertiary: #eeeeee;
+      --text-primary: #1a1a1a;
+      --text-secondary: #666666;
+      --text-tertiary: #999999;
+      --border-color: #d0d0d0;
+      --accent-blue: #185fa5;
+      --accent-teal: #0f6e56;
+      --accent-coral: #d85a30;
+      --accent-amber: #ba7517;
+      --accent-red: #a32d2d;
+      --accent-green: #3b6d11;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1a1a1a;
+        --bg-secondary: #2a2a2a;
+        --bg-tertiary: #333333;
+        --text-primary: #e0e0e0;
+        --text-secondary: #b0b0b0;
+        --text-tertiary: #808080;
+        --border-color: #404040;
+        --accent-blue: #5a9fd4;
+        --accent-teal: #4fa89a;
+        --accent-coral: #e89070;
+        --accent-amber: #d4a05e;
+        --accent-red: #d66666;
+        --accent-green: #7ab435;
+      }
+    }
+
+    body {
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 20px 0;
+      margin-bottom: 30px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .dark-toggle {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 30px;
+      background: var(--bg-primary);
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    select, input[type="date"] {
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    select:focus, input[type="date"]:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(24, 95, 165, 0.1);
+    }
+
+    button {
+      padding: 8px 16px;
+      background-color: var(--accent-blue);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    button:hover {
+      filter: brightness(1.1);
+    }
+
+    .section {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--accent-blue);
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .card-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent-blue);
+      margin-bottom: 4px;
+    }
+
+    .card-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card-subtitle {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-top: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid var(--border-color);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    th:hover {
+      background-color: var(--bg-tertiary);
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    tr:hover {
+      background-color: var(--bg-secondary);
+    }
+
+    .cell-rechazado {
+      color: var(--accent-red);
+      font-weight: 600;
+    }
+
+    .cell-calificado {
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    .reason-badge {
+      display: inline-block;
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+      padding: 4px 8px;
+      border-radius: 3px;
+      font-size: 12px;
+      border-left: 3px solid var(--accent-coral);
+    }
+
+    .note {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    @media (max-width: 768px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+
+      table {
+        font-size: 12px;
+      }
+
+      th, td {
+        padding: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>
+        Anti-Funnel: Lead Status & Rejection Analysis — México
+        <button class="dark-toggle" onclick="toggleDarkMode()">🌙</button>
+      </h1>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="controls">
+      <div class="control-group">
+        <label for="filtro-fuente">Filtrar por Fuente</label>
+        <select id="filtro-fuente" onchange="aplicarFiltros()">
+          <option value="">Todas</option>
+          <option value="WEB">WEB</option>
+          <option value="Lead Forms">Lead Forms</option>
+          <option value="Estudio Inmueble">Estudio Inmueble</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="filtro-razón">Filtrar por Razón de Rechazo</label>
+        <select id="filtro-razón" onchange="aplicarFiltros()">
+          <option value="">Todas</option>
+          <option value="Duplicado">Duplicado</option>
+          <option value="Fuera de zona">Fuera de zona</option>
+          <option value="Precio elevado">Precio elevado</option>
+          <option value="Datos incompletos">Datos incompletos</option>
+          <option value="Pendiente">Pendiente</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <button onclick="limpiarFiltros()" style="margin-top: 22px; width: 100%;">Limpiar Filtros</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">📊 Resumen Ejecutivo</div>
+      <div class="cards-grid">
+        <div class="card">
+          <div class="card-value" id="total-creados">0</div>
+          <div class="card-label">Leads Creados</div>
+        </div>
+        <div class="card">
+          <div class="card-value cell-calificado" id="total-calificados">0</div>
+          <div class="card-label">Calificados</div>
+          <div class="card-subtitle" id="pct-calif">0%</div>
+        </div>
+        <div class="card">
+          <div class="card-value cell-rechazado" id="total-rechazados">0</div>
+          <div class="card-label">Rechazados</div>
+          <div class="card-subtitle" id="pct-rechazados">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">🔍 Análisis Granular: Fuente × Sub-fuente × Plataforma × Campaña</div>
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortTable(this, 0)">Fuente</th>
+            <th onclick="sortTable(this, 1)">Sub-fuente</th>
+            <th onclick="sortTable(this, 2)">Creados</th>
+            <th onclick="sortTable(this, 3)">Calif.</th>
+            <th onclick="sortTable(this, 4)">%</th>
+            <th onclick="sortTable(this, 5)">Rechazados</th>
+            <th onclick="sortTable(this, 6)">Top Razón</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-datos">
+          <tr><td colspan="7" style="text-align: center; padding: 40px;">Cargando datos...</td></tr>
+        </tbody>
+      </table>
+      <div class="note">💡 Haz clic en los encabezados para ordenar. Última actualización: <span id="fecha-update">-</span></div>
+    </div>
+  </div>
+
+  <script>
+    const DATOS_BRUTOS = [
+      {"seccion":"Análisis Granular","fuente":"WEB","mkt_channel_medium":"WEB Paid","creados":1147,"calificados":446,"rechazados":595,"pct_calificados":38.88,"top_razon_rechazo":"Duplicado"},
+      {"seccion":"Análisis Granular","fuente":"Lead Forms","mkt_channel_medium":"Lead Forms Paid","creados":1070,"calificados":130,"rechazados":883,"pct_calificados":12.15,"top_razon_rechazo":"Pendiente"},
+      {"seccion":"Análisis Granular","fuente":"Estudio Inmueble","mkt_channel_medium":"Estudio Inmueble Paid","creados":955,"calificados":293,"rechazados":441,"pct_calificados":30.68,"top_razon_rechazo":"Duplicado"},
+      {"seccion":"Análisis Granular","fuente":"Lead Forms","mkt_channel_medium":"Lead Forms Paid","creados":866,"calificados":153,"rechazados":662,"pct_calificados":17.67,"top_razon_rechazo":"Fuera de zona"},
+      {"seccion":"Análisis Granular","fuente":"Lead Forms","mkt_channel_medium":"Lead Forms Paid","creados":844,"calificados":161,"rechazados":646,"pct_calificados":19.08,"top_razon_rechazo":"Duplicado"}
+    ];
+
+    let datosFiltrados = [...DATOS_BRUTOS];
+
+    function cargarDatos() {
+      const tbody = document.getElementById('tabla-datos');
+      tbody.innerHTML = '';
+
+      let totalCreados = 0, totalCalificados = 0, totalRechazados = 0;
+
+      datosFiltrados.forEach(row => {
+        totalCreados += row.creados;
+        totalCalificados += row.calificados;
+        totalRechazados += row.rechazados;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.fuente}</td>
+          <td>${row.mkt_channel_medium}</td>
+          <td>${row.creados}</td>
+          <td class="cell-calificado">${row.calificados}</td>
+          <td>${row.pct_calificados}%</td>
+          <td class="cell-rechazado">${row.rechazados}</td>
+          <td><span class="reason-badge">${row.top_razon_rechazo}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const pctCalif = totalCreados > 0 ? ((totalCalificados / totalCreados) * 100).toFixed(2) : 0;
+      const pctRechaz = totalCreados > 0 ? ((totalRechazados / totalCreados) * 100).toFixed(2) : 0;
+
+      document.getElementById('total-creados').textContent = totalCreados.toLocaleString();
+      document.getElementById('total-calificados').textContent = totalCalificados.toLocaleString();
+      document.getElementById('total-rechazados').textContent = totalRechazados.toLocaleString();
+      document.getElementById('pct-calif').textContent = pctCalif + '%';
+      document.getElementById('pct-rechazados').textContent = pctRechaz + '%';
+      document.getElementById('fecha-update').textContent = new Date().toLocaleString('es-MX');
+    }
+
+    function aplicarFiltros() {
+      const fuente = document.getElementById('filtro-fuente').value;
+      const razon = document.getElementById('filtro-razón').value;
+
+      datosFiltrados = DATOS_BRUTOS.filter(row => {
+        const matchFuente = !fuente || row.fuente === fuente;
+        const matchRazon = !razon || row.top_razon_rechazo === razon;
+        return matchFuente && matchRazon;
+      });
+
+      cargarDatos();
+    }
+
+    function limpiarFiltros() {
+      document.getElementById('filtro-fuente').value = '';
+      document.getElementById('filtro-razón').value = '';
+      datosFiltrados = [...DATOS_BRUTOS];
+      cargarDatos();
+    }
+
+    function sortTable(header, columnIndex) {
+      const tbody = document.getElementById('tabla-datos');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+
+      rows.sort((a, b) => {
+        const aText = a.cells[columnIndex].innerText;
+        const bText = b.cells[columnIndex].innerText;
+
+        const aNum = parseFloat(aText) || aText;
+        const bNum = parseFloat(bText) || bText;
+
+        return aNum < bNum ? -1 : aNum > bNum ? 1 : 0;
+      });
+
+      tbody.innerHTML = '';
+      rows.forEach(row => tbody.appendChild(row));
+    }
+
+    function toggleDarkMode() {
+      const current = document.documentElement.style.colorScheme;
+      document.documentElement.style.colorScheme = current === 'dark' ? 'light' : 'dark';
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarDatos);
+  </script>
+</body>
+</html>
