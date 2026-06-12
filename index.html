@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Anti-Funnel — Estados no Calificados por Fecha</title>
+  <title>Anti-Funnel — Análisis de Rechazos</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
@@ -12,10 +12,9 @@
       background: #0f1419;
       color: #e0e0e0;
       padding: 20px;
-      overflow-x: auto;
     }
 
-    .container { max-width: 1600px; margin: 0 auto; }
+    .container { max-width: 100%; margin: 0 auto; }
 
     header {
       margin-bottom: 30px;
@@ -40,9 +39,13 @@
     .controls {
       margin-bottom: 30px;
       display: flex;
-      gap: 15px;
-      align-items: center;
+      gap: 20px;
+      align-items: flex-end;
       flex-wrap: wrap;
+      background: #1a1f2e;
+      padding: 20px;
+      border-radius: 6px;
+      border: 1px solid #333;
     }
 
     .control-group {
@@ -61,12 +64,13 @@
 
     select {
       padding: 8px 12px;
-      background: #1a1f2e;
+      background: #0f1419;
       border: 1px solid #333;
       border-radius: 4px;
       color: #e0e0e0;
       font-size: 13px;
       cursor: pointer;
+      min-width: 180px;
     }
 
     select:focus {
@@ -124,13 +128,11 @@
       color: #b0b0b0;
       border-bottom: 1px solid #333;
       border-right: 1px solid #333;
-      min-width: 60px;
+      min-width: 50px;
       white-space: nowrap;
     }
 
-    th:last-child {
-      border-right: none;
-    }
+    th:last-child { border-right: none; }
 
     td {
       padding: 10px 8px;
@@ -139,35 +141,49 @@
       text-align: center;
     }
 
-    td:last-child {
-      border-right: none;
-    }
+    td:last-child { border-right: none; }
 
-    tr:hover {
-      background: #16202e;
-    }
+    tr:hover { background: #16202e; }
 
     .estado-label {
       text-align: left;
       font-weight: 500;
       color: #e0e0e0;
-      min-width: 120px;
+      min-width: 160px;
       padding-left: 12px;
     }
 
-    .cell-calificado {
+    .estado-label.calificado {
+      color: #4fa89a;
+    }
+
+    .estado-label.rechazado {
+      color: #e89070;
+    }
+
+    .numero {
+      font-weight: 500;
+    }
+
+    .numero.calificado {
       color: #4fa89a;
       font-weight: 600;
     }
 
-    .cell-rechazado {
+    .numero.rechazado {
       color: #e89070;
-      font-weight: 600;
     }
 
-    .cell-pendiente {
-      color: #5a9fd4;
+    .subfuente-header {
+      background: #16202e;
       font-weight: 600;
+      border-top: 2px solid #333;
+      color: #fff;
+    }
+
+    .subfuente-header td {
+      padding: 12px;
+      border-bottom: 1px solid #333;
     }
 
     .total-row {
@@ -182,42 +198,57 @@
     }
 
     .date-header {
-      writing-mode: horizontal-tb;
       font-size: 11px;
+    }
+
+    .info-message {
+      background: #1a1f2e;
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 3px solid #5a9fd4;
+      color: #b0b0b0;
+      font-size: 12px;
+      margin-bottom: 20px;
     }
 
     @media (max-width: 768px) {
       body { padding: 10px; }
       table { font-size: 11px; }
       th, td { padding: 6px 4px; }
-      .estado-label { min-width: 80px; padding-left: 6px; }
+      select { min-width: 120px; }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>Anti-Funnel — Estados no Calificados por Fecha de Creación</h1>
-      <p class="subtitle">Desglose de leads por estado (Calificado / Rechazado / Pendiente)</p>
+      <h1>Anti-Funnel — Análisis Detallado de Rechazos</h1>
+      <p class="subtitle">Estados específicos de rechazo (Duplicado, Fuera de zona, Precio elevado, etc.) × Fechas</p>
     </header>
 
     <div class="controls">
       <div class="control-group">
-        <label>Filtrar por Fuente</label>
-        <select id="filtro-fuente" onchange="actualizarDashboard()">
-          <option value="">Todas las fuentes</option>
-          <option value="WEB">WEB</option>
-          <option value="Lead Forms">Lead Forms</option>
-          <option value="Estudio Inmueble">Estudio Inmueble</option>
+        <label>Seleccionar Fuente</label>
+        <select id="fuente" onchange="cambiarFuente()">
+          <option value="">-- Elige una fuente --</option>
         </select>
       </div>
+
       <div class="control-group">
-        <button onclick="resetear()" style="margin-top: 22px;">Limpiar Filtros</button>
+        <label>Seleccionar Sub-fuente</label>
+        <select id="subfuente" onchange="actualizarDashboard()" disabled>
+          <option value="">-- Primero elige fuente --</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <button onclick="resetear()">Limpiar Filtros</button>
       </div>
     </div>
 
-    <div class="section" id="seccion-tabla">
-      <div class="section-title">Leads por Estado y Fecha</div>
+    <div class="section">
+      <div id="info-mensaje" class="info-message" style="display: none;"></div>
+      <div class="section-title">Leads por Estado Específico y Fecha</div>
       <div class="table-wrapper">
         <table id="tabla-principal">
           <thead id="thead"></thead>
@@ -228,89 +259,147 @@
   </div>
 
   <script>
-const DATOS_BRUTOS = {"fechas": ["2026-06-10", "2026-06-09", "2026-06-08", "2026-06-07", "2026-06-06", "2026-06-05", "2026-06-04", "2026-06-03", "2026-06-02", "2026-06-01", "2026-05-31", "2026-05-30", "2026-05-29", "2026-05-28", "2026-05-27", "2026-05-26", "2026-05-25", "2026-05-24", "2026-05-23", "2026-05-22", "2026-05-21", "2026-05-20", "2026-05-19", "2026-05-18", "2026-05-17", "2026-05-16", "2026-05-15", "2026-05-14", "2026-05-13"], "fuentes": {"Estudio Inmueble": {"Calificado": [14, 18, 16, 11, 12, 21, 19, 22, 15, 16, 13, 9, 15, 18, 16, 14, 20, 7, 14, 14, 26, 19, 21, 22, 12, 11, 14, 12, 13], "Rechazado": [33, 40, 30, 18, 24, 24, 28, 32, 37, 33, 15, 31, 15, 22, 30, 24, 19, 20, 29, 17, 26, 28, 39, 30, 18, 21, 21, 28, 21], "Pendiente": [7, 14, 16, 12, 11, 15, 13, 20, 18, 14, 4, 6, 13, 16, 14, 14, 12, 5, 5, 13, 8, 15, 8, 16, 10, 13, 13, 12, 10]}, "Lead Forms": {"Calificado": [26, 26, 20, 6, 12, 14, 29, 25, 22, 38, 9, 8, 22, 35, 27, 25, 37, 12, 7, 18, 38, 34, 41, 34, 5, 10, 14, 19, 30], "Rechazado": [128, 137, 178, 55, 57, 98, 145, 140, 183, 178, 41, 39, 107, 155, 162, 128, 140, 37, 40, 82, 150, 136, 138, 149, 50, 34, 67, 99, 143], "Pendiente": [10, 7, 5, 2, 2, 5, 9, 11, 12, 9, 0, 2, 4, 8, 12, 5, 10, 1, 4, 15, 14, 6, 8, 8, 3, 1, 7, 7, 13]}, "WEB": {"Calificado": [87, 77, 84, 61, 61, 71, 82, 98, 123, 107, 72, 54, 81, 79, 75, 103, 98, 67, 67, 79, 102, 107, 111, 103, 77, 55, 73, 93, 91], "Rechazado": [103, 149, 139, 100, 87, 87, 109, 145, 147, 137, 82, 73, 98, 114, 116, 113, 131, 97, 92, 85, 116, 97, 146, 163, 104, 88, 95, 107, 131], "Pendiente": [6, 12, 24, 9, 12, 9, 13, 15, 22, 23, 9, 11, 9, 12, 17, 13, 15, 15, 9, 8, 12, 20, 16, 15, 16, 15, 19, 22, 10]}}}; const TEMPLATE = {
-  "fechas": ["2026-06-10", "2026-06-09", "2026-06-08", "2026-06-07", "2026-06-06", "2026-06-05", "2026-06-04", "2026-06-03", "2026-06-02", "2026-06-01", "2026-05-31", "2026-05-30", "2026-05-29", "2026-05-28", "2026-05-27", "2026-05-26", "2026-05-25", "2026-05-24", "2026-05-23", "2026-05-22", "2026-05-21", "2026-05-20", "2026-05-19", "2026-05-18", "2026-05-17", "2026-05-16", "2026-05-15", "2026-05-14", "2026-05-13"],
-  "fuentes": {
-    "WEB": {
-      "Calificado": [87, 77, 84, 74, 78, 97, 65, 85, 88, 82, 92, 79, 81, 89, 76, 88, 85, 83, 91, 87, 82, 84, 86, 79, 77, 88, 84, 82, 81],
-      "Rechazado": [103, 149, 139, 134, 152, 168, 145, 156, 149, 145, 138, 142, 151, 147, 152, 149, 148, 155, 144, 153, 147, 150, 146, 148, 151, 145, 149, 147, 146],
-      "Pendiente": [6, 12, 24, 18, 14, 22, 16, 19, 21, 17, 13, 15, 18, 16, 19, 17, 14, 16, 17, 18, 16, 15, 19, 17, 16, 18, 15, 17, 19]
-    },
-    "Lead Forms": {
-      "Calificado": [26, 26, 20, 23, 19, 25, 21, 24, 22, 26, 23, 20, 25, 21, 24, 22, 23, 26, 21, 25, 22, 24, 20, 23, 21, 25, 22, 24, 23],
-      "Rechazado": [128, 137, 178, 165, 172, 181, 158, 169, 162, 176, 155, 168, 171, 158, 174, 169, 166, 179, 160, 167, 172, 170, 165, 173, 168, 170, 167, 175, 169],
-      "Pendiente": [10, 7, 5, 8, 6, 9, 7, 8, 6, 10, 8, 7, 9, 6, 8, 7, 6, 8, 7, 9, 8, 7, 6, 8, 7, 9, 8, 8, 7]
-    },
-    "Estudio Inmueble": {
-      "Calificado": [14, 18, 16, 20, 15, 19, 17, 21, 18, 22, 16, 19, 21, 17, 19, 20, 18, 22, 19, 21, 17, 20, 18, 19, 21, 20, 19, 21, 18],
-      "Rechazado": [33, 40, 30, 35, 38, 42, 36, 41, 39, 44, 35, 40, 42, 38, 41, 39, 37, 43, 38, 42, 36, 41, 39, 40, 43, 38, 40, 42, 39],
-      "Pendiente": [7, 14, 16, 12, 10, 8, 11, 9, 13, 11, 14, 12, 10, 13, 11, 12, 14, 10, 13, 11, 12, 9, 11, 12, 10, 13, 11, 10, 12]
-    }
-  }
-};
+const DATOS_BRUTOS = {"fechas": ["2026-06-10", "2026-06-09", "2026-06-08", "2026-06-07", "2026-06-06", "2026-06-05", "2026-06-04", "2026-06-03", "2026-06-02", "2026-06-01", "2026-05-31", "2026-05-30", "2026-05-29", "2026-05-28", "2026-05-27", "2026-05-26", "2026-05-25", "2026-05-24", "2026-05-23", "2026-05-22", "2026-05-21", "2026-05-20", "2026-05-19", "2026-05-18", "2026-05-17", "2026-05-16", "2026-05-15", "2026-05-14", "2026-05-13"], "fuentes": {"Estudio Inmueble": ["Estudio Inmueble Blog", "Estudio Inmueble Community", "Estudio Inmueble Direct", "Estudio Inmueble Paid", "WEB PCOM", "WEB Paid", "WEB SAC"], "Lead Forms": ["Lead Forms Direct", "Lead Forms Paid"], "WEB": ["Brand", "Estudio Inmueble Paid", "Lead Forms Paid", "WEB Blog", "WEB Community", "WEB Direct", "WEB PCOM", "WEB Paid", "WEB Referral", "WEB SAC"]}, "data": {"Estudio Inmueble|Estudio Inmueble Direct": {"Antigüedad propiedad": [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1], "Calificado": [2, 2, 0, 1, 2, 6, 4, 7, 4, 2, 2, 1, 4, 5, 2, 3, 4, 2, 2, 3, 1, 2, 9, 5, 2, 1, 2, 3, 1], "Datos dirección inválidos": [3, 2, 3, 0, 0, 0, 0, 1, 1, 5, 2, 2, 2, 2, 4, 1, 0, 0, 2, 4, 2, 2, 3, 3, 0, 2, 1, 3, 0], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [2, 1, 0, 0, 1, 0, 0, 2, 3, 0, 1, 0, 0, 2, 2, 1, 1, 2, 1, 0, 0, 0, 1, 1, 4, 0, 0, 0, 0], "Fuera de zona": [6, 4, 3, 5, 1, 0, 1, 2, 2, 4, 3, 3, 0, 1, 5, 0, 2, 1, 6, 1, 3, 3, 5, 3, 2, 3, 6, 4, 1], "Pendiente/Otros": [4, 2, 1, 2, 0, 3, 2, 5, 5, 4, 1, 2, 1, 6, 6, 4, 2, 1, 1, 3, 2, 4, 2, 2, 4, 2, 4, 4, 1], "Precio elevado": [0, 1, 1, 1, 1, 3, 3, 4, 2, 2, 3, 3, 1, 0, 3, 5, 1, 1, 0, 1, 2, 1, 1, 4, 2, 2, 3, 1, 1], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "Estudio Inmueble|Estudio Inmueble Paid": {"Antigüedad propiedad": [3, 5, 4, 0, 3, 3, 2, 4, 2, 2, 1, 2, 0, 4, 1, 4, 2, 3, 2, 2, 3, 4, 0, 2, 0, 1, 0, 2, 1], "Calificado": [12, 13, 15, 10, 10, 15, 14, 14, 10, 13, 11, 8, 9, 13, 14, 10, 13, 5, 11, 10, 22, 13, 10, 15, 9, 9, 11, 8, 12], "Datos dirección inválidos": [5, 13, 9, 9, 4, 11, 9, 5, 11, 10, 1, 6, 7, 3, 7, 6, 3, 3, 9, 2, 7, 5, 11, 5, 1, 7, 4, 5, 8], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [4, 4, 3, 1, 2, 2, 5, 3, 4, 1, 0, 3, 1, 4, 2, 4, 2, 2, 1, 1, 2, 2, 3, 1, 0, 1, 2, 2, 0], "Fuera de zona": [2, 0, 0, 0, 1, 2, 0, 1, 4, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 2, 2, 0, 2, 0, 0, 2, 2], "Pendiente/Otros": [3, 12, 13, 10, 10, 11, 11, 14, 12, 10, 3, 4, 11, 9, 8, 9, 8, 4, 4, 7, 6, 11, 5, 10, 5, 11, 9, 8, 9], "Precio elevado": [5, 8, 6, 2, 10, 3, 6, 9, 8, 7, 3, 7, 4, 4, 5, 2, 4, 5, 6, 5, 5, 7, 9, 7, 4, 4, 2, 7, 6], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "Estudio Inmueble|WEB Paid": {"Antigüedad propiedad": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0], "Calificado": [0, 3, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 2, 0, 0, 1, 3, 0, 1, 1, 3, 3, 2, 2, 1, 1, 1, 1, 0], "Datos dirección inválidos": [1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0], "Fuera de zona": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1], "Pendiente/Otros": [0, 0, 2, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 2, 0, 0, 3, 0, 0, 1, 4, 1, 0, 0, 0, 0], "Precio elevado": [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 2, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 2, 2, 1, 0, 0, 0, 0], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "Estudio Inmueble|Estudio Inmueble Community": {"Antigüedad propiedad": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0], "Calificado": [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Datos dirección inválidos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Fuera de zona": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Pendiente/Otros": [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Precio elevado": [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "Estudio Inmueble|Estudio Inmueble Blog": {"Antigüedad propiedad": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Calificado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Datos dirección inválidos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Fuera de zona": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Pendiente/Otros": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Precio elevado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "Estudio Inmueble|WEB SAC": {"Antigüedad propiedad": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Calificado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0], "Datos dirección inválidos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Fuera de zona": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Pendiente/Otros": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Precio elevado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "Estudio Inmueble|WEB PCOM": {"Antigüedad propiedad": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Calificado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Datos dirección inválidos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0], "Fuera de zona": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Pendiente/Otros": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Precio elevado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "Lead Forms|Lead Forms Direct": {"Antigüedad propiedad": [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Calificado": [1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 3, 2, 0, 0, 1, 1, 1, 0], "Datos dirección inválidos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0], "Datos incompletos": [2, 3, 1, 2, 0, 1, 1, 0, 3, 3, 3, 2, 1, 3, 2, 2, 3, 2, 0, 3, 3, 2, 1, 0, 3, 3, 0, 3, 1], "Duplicado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1], "Fuera de zona": [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 4, 2, 2, 6, 3, 1, 2, 5, 3, 2, 0], "Pendiente/Otros": [3, 3, 2, 1, 0, 1, 1, 0, 1, 1, 2, 1, 5, 2, 0, 0, 0, 1, 0, 1, 1, 0, 4, 3, 2, 0, 1, 2, 0], "Precio elevado": [2, 8, 10, 2, 3, 1, 2, 3, 5, 8, 2, 2, 2, 0, 3, 4, 2, 2, 2, 1, 2, 1, 2, 1, 2, 0, 1, 3, 4], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "Lead Forms|Lead Forms Paid": {"Antigüedad propiedad": [2, 0, 2, 0, 0, 0, 1, 1, 3, 2, 2, 0, 0, 1, 1, 0, 0, 2, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 2], "Calificado": [25, 25, 20, 6, 13, 14, 28, 25, 22, 38, 9, 7, 21, 35, 26, 25, 37, 12, 7, 18, 37, 31, 39, 34, 5, 9, 13, 18, 30], "Datos dirección inválidos": [1, 3, 8, 1, 1, 2, 2, 4, 9, 7, 0, 0, 0, 4, 5, 3, 4, 0, 1, 1, 3, 5, 5, 4, 0, 1, 3, 1, 2], "Datos incompletos": [80, 80, 121, 35, 39, 72, 107, 101, 127, 124, 30, 23, 77, 110, 119, 97, 97, 18, 29, 63, 110, 98, 96, 117, 29, 17, 41, 69, 98], "Duplicado": [0, 4, 2, 1, 0, 0, 1, 1, 2, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 1, 0], "Fuera de zona": [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 2, 3, 2, 0, 0, 2, 3, 2, 4, 2, 2, 1, 2, 3], "Pendiente/Otros": [13, 14, 11, 1, 3, 12, 17, 19, 19, 16, 0, 2, 5, 10, 16, 9, 17, 1, 4, 15, 17, 7, 7, 9, 3, 1, 8, 7, 13], "Precio elevado": [28, 28, 24, 14, 9, 12, 20, 20, 22, 26, 2, 10, 16, 29, 23, 12, 15, 4, 4, 8, 21, 18, 20, 15, 8, 6, 13, 15, 27], "Zona restringida": [7, 1, 2, 0, 2, 1, 2, 2, 3, 0, 0, 1, 3, 4, 3, 4, 4, 3, 0, 3, 2, 2, 4, 1, 1, 0, 1, 0, 5]}, "WEB|Lead Forms Paid": {"Antigüedad propiedad": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Calificado": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0], "Datos dirección inválidos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0], "Fuera de zona": [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Pendiente/Otros": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0], "Precio elevado": [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "WEB|WEB Direct": {"Antigüedad propiedad": [0, 1, 3, 0, 0, 0, 0, 0, 0, 2, 1, 0, 1, 2, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0], "Calificado": [22, 17, 16, 7, 14, 11, 14, 11, 21, 18, 8, 8, 14, 17, 12, 12, 18, 12, 12, 10, 19, 7, 14, 16, 8, 9, 18, 10, 12], "Datos dirección inválidos": [7, 5, 4, 3, 2, 2, 3, 4, 6, 4, 4, 2, 3, 4, 1, 3, 5, 2, 4, 2, 3, 3, 5, 7, 2, 1, 5, 3, 8], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [1, 7, 4, 2, 2, 1, 1, 7, 3, 5, 1, 1, 2, 4, 2, 1, 5, 2, 2, 0, 1, 1, 6, 3, 3, 3, 8, 2, 4], "Fuera de zona": [5, 7, 5, 2, 3, 6, 1, 5, 3, 4, 4, 3, 2, 4, 4, 3, 2, 2, 2, 2, 6, 6, 3, 8, 1, 3, 1, 2, 4], "Pendiente/Otros": [1, 2, 6, 3, 2, 3, 0, 2, 4, 2, 0, 2, 3, 4, 3, 2, 3, 4, 2, 1, 4, 2, 4, 4, 3, 2, 4, 5, 5], "Precio elevado": [17, 22, 29, 18, 14, 9, 11, 21, 21, 12, 8, 2, 15, 17, 16, 10, 12, 9, 9, 14, 10, 6, 17, 16, 5, 9, 9, 5, 11], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "WEB|WEB PCOM": {"Antigüedad propiedad": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Calificado": [0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 2, 1, 0, 2, 1, 0, 0, 1, 0], "Datos dirección inválidos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0], "Fuera de zona": [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 3], "Pendiente/Otros": [0, 2, 0, 2, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Precio elevado": [1, 1, 1, 1, 1, 0, 2, 2, 3, 3, 0, 0, 1, 1, 1, 2, 1, 0, 1, 0, 1, 0, 1, 3, 1, 0, 0, 0, 1], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "WEB|WEB Paid": {"Antigüedad propiedad": [5, 3, 1, 0, 4, 3, 2, 3, 4, 4, 0, 4, 0, 2, 2, 1, 3, 0, 3, 3, 1, 1, 0, 4, 1, 4, 4, 2, 1], "Calificado": [59, 56, 63, 53, 46, 59, 63, 82, 97, 81, 62, 44, 58, 57, 58, 86, 74, 49, 54, 63, 73, 89, 93, 80, 68, 42, 47, 79, 73], "Datos dirección inválidos": [14, 13, 17, 9, 7, 14, 13, 18, 11, 20, 8, 10, 8, 7, 9, 13, 18, 16, 13, 4, 9, 12, 17, 20, 10, 11, 11, 13, 19], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [3, 8, 5, 11, 6, 7, 9, 3, 7, 9, 1, 2, 2, 4, 4, 4, 8, 5, 1, 6, 7, 5, 8, 6, 8, 4, 8, 9, 6], "Fuera de zona": [5, 9, 8, 6, 5, 6, 8, 14, 17, 7, 12, 8, 11, 8, 10, 15, 12, 11, 11, 7, 14, 10, 6, 18, 10, 4, 9, 8, 15], "Pendiente/Otros": [6, 10, 22, 9, 10, 7, 14, 13, 23, 19, 8, 10, 10, 9, 17, 16, 15, 13, 10, 8, 9, 23, 17, 14, 18, 15, 17, 19, 8], "Precio elevado": [43, 65, 53, 36, 41, 30, 50, 56, 54, 63, 40, 34, 42, 52, 54, 51, 54, 45, 39, 39, 53, 43, 68, 65, 57, 40, 34, 54, 51], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "WEB|WEB Referral": {"Antigüedad propiedad": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Calificado": [1, 2, 0, 0, 0, 0, 1, 0, 2, 1, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 3, 4, 3, 1, 0, 1, 3, 2, 2], "Datos dirección inválidos": [0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Fuera de zona": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Pendiente/Otros": [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Precio elevado": [0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "WEB|WEB SAC": {"Antigüedad propiedad": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Calificado": [4, 2, 3, 0, 1, 1, 4, 4, 3, 5, 2, 2, 7, 2, 2, 3, 4, 3, 0, 5, 4, 6, 1, 1, 0, 2, 4, 0, 3], "Datos dirección inválidos": [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 1, 0, 1, 0], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 2, 0, 0, 0], "Fuera de zona": [0, 1, 0, 1, 0, 1, 1, 3, 1, 0, 2, 1, 1, 0, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Pendiente/Otros": [0, 0, 1, 0, 0, 1, 0, 2, 2, 2, 0, 0, 1, 0, 1, 0, 1, 2, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0], "Precio elevado": [0, 1, 0, 2, 1, 4, 2, 2, 4, 2, 0, 4, 4, 3, 5, 0, 2, 0, 3, 3, 6, 1, 3, 5, 0, 2, 2, 2, 2], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "WEB|WEB Community": {"Antigüedad propiedad": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Calificado": [0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 1, 0, 0, 2, 0, 1, 1, 1, 1], "Datos dirección inválidos": [0, 0, 2, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Fuera de zona": [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0], "Pendiente/Otros": [0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Precio elevado": [0, 2, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "WEB|WEB Blog": {"Antigüedad propiedad": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Calificado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Datos dirección inválidos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Fuera de zona": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Pendiente/Otros": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Precio elevado": [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "WEB|Estudio Inmueble Paid": {"Antigüedad propiedad": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Calificado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Datos dirección inválidos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Fuera de zona": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Pendiente/Otros": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Precio elevado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "WEB|Brand": {"Antigüedad propiedad": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Calificado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Datos dirección inválidos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Datos incompletos": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Duplicado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Fuera de zona": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Pendiente/Otros": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], "Precio elevado": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Zona restringida": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}}};
 
 let datosFiltrados = DATOS_BRUTOS;
-const estados = ['Calificado', 'Rechazado', 'Pendiente'];
+
+function inicializar() {
+  // Llenar selector de fuentes
+  const selectFuente = document.getElementById('fuente');
+  Object.keys(DATOS_BRUTOS.fuentes || {}).forEach(fuente => {
+    const option = document.createElement('option');
+    option.value = fuente;
+    option.textContent = fuente;
+    selectFuente.appendChild(option);
+  });
+}
+
+function cambiarFuente() {
+  const fuente = document.getElementById('fuente').value;
+  const selectSubfuente = document.getElementById('subfuente');
+  
+  selectSubfuente.innerHTML = '';
+  
+  if (!fuente) {
+    selectSubfuente.disabled = true;
+    selectSubfuente.innerHTML = '<option value="">-- Primero elige fuente --</option>';
+    return;
+  }
+  
+  selectSubfuente.disabled = false;
+  const option0 = document.createElement('option');
+  option0.value = '';
+  option0.textContent = '-- Todas las sub-fuentes --';
+  selectSubfuente.appendChild(option0);
+  
+  (DATOS_BRUTOS.fuentes[fuente] || []).forEach(subfuente => {
+    const option = document.createElement('option');
+    option.value = subfuente;
+    option.textContent = subfuente;
+    selectSubfuente.appendChild(option);
+  });
+  
+  actualizarDashboard();
+}
 
 function construirTabla() {
-  const fuente = document.getElementById('filtro-fuente').value;
-  const fuentes = fuente ? { [fuente]: DATOS_BRUTOS.fuentes[fuente] } : DATOS_BRUTOS.fuentes;
+  const fuente = document.getElementById('fuente').value;
+  const subfuente = document.getElementById('subfuente').value;
+  
+  if (!fuente) {
+    document.getElementById('tbody').innerHTML = '<tr><td colspan="100" style="text-align: center; padding: 40px;">Selecciona una fuente para comenzar</td></tr>';
+    document.getElementById('info-mensaje').style.display = 'none';
+    return;
+  }
   
   const thead = document.getElementById('thead');
   const tbody = document.getElementById('tbody');
+  const infoDiv = document.getElementById('info-mensaje');
+  
   thead.innerHTML = '';
   tbody.innerHTML = '';
 
-  // Header con fechas
-  let headerHTML = '<tr><th style="min-width: 120px;">Estado</th>';
+  // Header
+  let headerHTML = '<tr><th style="min-width: 160px;">Estado</th>';
   DATOS_BRUTOS.fechas.forEach(fecha => {
     const [año, mes, día] = fecha.split('-');
     const label = `${día}/${mes}`;
     headerHTML += `<th class="date-header">${label}</th>`;
   });
-  headerHTML += '</tr>';
+  headerHTML += '<th style="min-width: 60px;">TOTAL</th></tr>';
   thead.innerHTML = headerHTML;
 
-  // Filas por estado
-  Object.entries(fuentes).forEach(([nombreFuente, dataFuente]) => {
-    // Título de fuente
+  // Determinar qué sub-fuentes mostrar
+  const subfuentesAMostrar = subfuente 
+    ? [subfuente] 
+    : (DATOS_BRUTOS.fuentes[fuente] || []);
+
+  // Mensaje
+  if (subfuentesAMostrar.length === 1) {
+    infoDiv.textContent = `📊 ${fuente} > ${subfuentesAMostrar[0]}`;
+  } else {
+    infoDiv.textContent = `📊 ${fuente} > Todas (${subfuentesAMostrar.length} sub-fuentes)`;
+  }
+  infoDiv.style.display = 'block';
+
+  // Filas por sub-fuente y estado
+  subfuentesAMostrar.forEach(sf => {
+    const key = `${fuente}|${sf}`;
+    if (!DATOS_BRUTOS.data[key]) return;
+
+    // Header de sub-fuente
     const filaTítulo = document.createElement('tr');
-    filaTítulo.style.background = '#1a1f2e';
-    filaTítulo.style.borderTop = '2px solid #333';
-    let htmlTítulo = `<td colspan="${DATOS_BRUTOS.fechas.length + 1}" style="text-align: left; font-weight: 600; padding: 12px;">${nombreFuente}</td>`;
+    filaTítulo.className = 'subfuente-header';
+    let htmlTítulo = `<td><strong>${sf}</strong></td>`;
+    htmlTítulo += `<td colspan="${DATOS_BRUTOS.fechas.length + 1}"></td>`;
     filaTítulo.innerHTML = htmlTítulo;
     tbody.appendChild(filaTítulo);
 
     // Filas por estado
+    const estados = Object.keys(DATOS_BRUTOS.data[key]).sort();
     estados.forEach(estado => {
       const fila = document.createElement('tr');
-      let html = `<td class="estado-label">${estado}</td>`;
+      let clase = 'rechazado';
+      if (estado === 'Calificado') clase = 'calificado';
       
-      dataFuente[estado].forEach((valor, idx) => {
-        let clase = 'cell-pendiente';
-        if (estado === 'Calificado') clase = 'cell-calificado';
-        else if (estado === 'Rechazado') clase = 'cell-rechazado';
-        
-        html += `<td class="${clase}">${valor}</td>`;
+      let html = `<td class="estado-label ${clase}">${estado}</td>`;
+      let sumaFila = 0;
+      
+      const dataEstado = DATOS_BRUTOS.data[key][estado];
+      DATOS_BRUTOS.fechas.forEach((fecha, idx) => {
+        const valor = dataEstado[idx] || 0;
+        sumaFila += valor;
+        const numClase = estado === 'Calificado' ? 'calificado' : '';
+        html += `<td class="numero ${numClase}">${valor}</td>`;
       });
       
+      html += `<td class="numero" style="font-weight: 600; color: #fff;">${sumaFila}</td>`;
       fila.innerHTML = html;
       tbody.appendChild(fila);
     });
 
-    // Fila de total por fuente
+    // Total por sub-fuente
     const filaTotal = document.createElement('tr');
     filaTotal.className = 'total-row';
-    let htmlTotal = '<td class="estado-label">TOTAL</td>';
+    let htmlTotal = '<td class="estado-label"><strong>TOTAL</strong></td>';
     
     for (let i = 0; i < DATOS_BRUTOS.fechas.length; i++) {
       let suma = 0;
-      estados.forEach(estado => {
-        suma += dataFuente[estado][i];
+      Object.keys(DATOS_BRUTOS.data[key]).forEach(estado => {
+        suma += DATOS_BRUTOS.data[key][estado][i] || 0;
       });
       htmlTotal += `<td>${suma}</td>`;
     }
     
+    // Total general
+    let totalGeneral = 0;
+    DATOS_BRUTOS.fechas.forEach((fecha, idx) => {
+      Object.keys(DATOS_BRUTOS.data[key]).forEach(estado => {
+        totalGeneral += DATOS_BRUTOS.data[key][estado][idx] || 0;
+      });
+    });
+    
+    htmlTotal += `<td>${totalGeneral}</td>`;
     filaTotal.innerHTML = htmlTotal;
     tbody.appendChild(filaTotal);
   });
@@ -321,11 +410,15 @@ function actualizarDashboard() {
 }
 
 function resetear() {
-  document.getElementById('filtro-fuente').value = '';
+  document.getElementById('fuente').value = '';
+  document.getElementById('subfuente').value = '';
+  document.getElementById('subfuente').disabled = true;
   construirTabla();
 }
 
-document.addEventListener('DOMContentLoaded', construirTabla);
+document.addEventListener('DOMContentLoaded', () => {
+  inicializar();
+});
   </script>
 </body>
 </html>
