@@ -257,7 +257,18 @@
           <option value="por_mes">Por Mes</option>
           <option value="por_trimestre">Por Trimestre</option>
           <option value="por_ano">Por Año</option>
+          <option value="personalizado">Personalizado</option>
         </select>
+      </div>
+
+      <div class="control-group">
+        <label>Desde</label>
+        <input type="date" id="fecha-inicio" style="display: none;" onchange="actualizarDashboard()">
+      </div>
+
+      <div class="control-group">
+        <label>Hasta</label>
+        <input type="date" id="fecha-fin" style="display: none;" onchange="actualizarDashboard()">
       </div>
 
       <div class="control-group">
@@ -322,19 +333,34 @@ function inicializar() {
 
 function cambiarGranularidad() {
   granularidadActual = document.getElementById('granularidad').value;
+  const inicioInput = document.getElementById('fecha-inicio');
+  const finInput = document.getElementById('fecha-fin');
   
-  if (granularidadActual === 'por_dia') {
-    periodosActuales = AGRUPACIONES.por_dia || [];
-  } else if (granularidadActual === 'por_ciclo') {
-    periodosActuales = (AGRUPACIONES.por_ciclo || []).map(([periodo, fechas]) => ({ periodo, fechas: Object.keys(fechas) }));
-  } else if (granularidadActual === 'por_semana') {
-    periodosActuales = (AGRUPACIONES.por_semana || []).map(([periodo, fechas]) => ({ periodo, fechas: Object.keys(fechas) }));
-  } else if (granularidadActual === 'por_mes') {
-    periodosActuales = (AGRUPACIONES.por_mes || []).map(([periodo, fechas]) => ({ periodo, fechas: Object.keys(fechas) }));
-  } else if (granularidadActual === 'por_trimestre') {
-    periodosActuales = (AGRUPACIONES.por_trimestre || []).map(([periodo, fechas]) => ({ periodo, fechas: Object.keys(fechas) }));
-  } else if (granularidadActual === 'por_ano') {
-    periodosActuales = (AGRUPACIONES.por_ano || []).map(([periodo, fechas]) => ({ periodo, fechas: Object.keys(fechas) }));
+  if (granularidadActual === 'personalizado') {
+    inicioInput.style.display = 'block';
+    finInput.style.display = 'block';
+    inicioInput.parentElement.style.display = 'flex';
+    finInput.parentElement.style.display = 'flex';
+    periodosActuales = [];
+  } else {
+    inicioInput.style.display = 'none';
+    finInput.style.display = 'none';
+    inicioInput.parentElement.style.display = 'none';
+    finInput.parentElement.style.display = 'none';
+    
+    if (granularidadActual === 'por_dia') {
+      periodosActuales = AGRUPACIONES.por_dia || [];
+    } else if (granularidadActual === 'por_ciclo') {
+      periodosActuales = (AGRUPACIONES.por_ciclo || []).map(([periodo, fechas]) => ({ periodo, fechas: Object.keys(fechas) }));
+    } else if (granularidadActual === 'por_semana') {
+      periodosActuales = (AGRUPACIONES.por_semana || []).map(([periodo, fechas]) => ({ periodo, fechas: Object.keys(fechas) }));
+    } else if (granularidadActual === 'por_mes') {
+      periodosActuales = (AGRUPACIONES.por_mes || []).map(([periodo, fechas]) => ({ periodo, fechas: Object.keys(fechas) }));
+    } else if (granularidadActual === 'por_trimestre') {
+      periodosActuales = (AGRUPACIONES.por_trimestre || []).map(([periodo, fechas]) => ({ periodo, fechas: Object.keys(fechas) }));
+    } else if (granularidadActual === 'por_ano') {
+      periodosActuales = (AGRUPACIONES.por_ano || []).map(([periodo, fechas]) => ({ periodo, fechas: Object.keys(fechas) }));
+    }
   }
   
   actualizarDashboard();
@@ -349,6 +375,7 @@ function cambiarFuente() {
   if (!fuente) {
     selectSubfuente.disabled = true;
     selectSubfuente.innerHTML = '<option value="">-- Primero elige fuente --</option>';
+    actualizarDashboard();
     return;
   }
   
@@ -365,20 +392,43 @@ function cambiarFuente() {
     selectSubfuente.appendChild(option);
   });
   
+  selectSubfuente.value = '';
   actualizarDashboard();
+}
+
+function obtenerPeriodosPersonalizados() {
+  const inicioVal = document.getElementById('fecha-inicio').value;
+  const finVal = document.getElementById('fecha-fin').value;
+  
+  if (!inicioVal || !finVal) return [];
+  
+  const inicio = new Date(inicioVal);
+  const fin = new Date(finVal);
+  
+  let fechas = DATOS_BRUTOS.fechas.filter(f => {
+    const d = new Date(f);
+    return d >= inicio && d <= fin;
+  });
+  
+  return fechas.map(f => ({ periodo: f, fechas: [f] }));
 }
 
 function construirTablas() {
   const fuente = document.getElementById('fuente').value;
   const subfuente = document.getElementById('subfuente').value;
   
-  if (!fuente) {
-    document.getElementById('tbody').innerHTML = '<tr><td colspan="100" style="text-align: center; padding: 40px;">Selecciona una fuente para comenzar</td></tr>';
+  let periodosParaUsar = periodosActuales;
+  if (granularidadActual === 'personalizado') {
+    periodosParaUsar = obtenerPeriodosPersonalizados();
+  }
+  
+  if (!fuente || periodosParaUsar.length === 0) {
+    const mensaje = !fuente ? 'Selecciona una fuente para comenzar' : 'No hay datos en el período seleccionado';
+    document.getElementById('tbody').innerHTML = `<tr><td colspan="100" style="text-align: center; padding: 40px;">${mensaje}</td></tr>`;
     document.getElementById('info-mensaje').style.display = 'none';
     return;
   }
   
-  // --- TABLA RESUMEN ---
   const theadResumen = document.getElementById('thead-resumen');
   const tbodyResumen = document.getElementById('tbody-resumen');
   theadResumen.innerHTML = '';
@@ -388,12 +438,12 @@ function construirTablas() {
   
   let periodosLabels = [];
   if (granularidadActual === 'por_dia') {
-    periodosLabels = periodosActuales.map(f => {
+    periodosLabels = periodosParaUsar.map(f => {
       const [año, mes, día] = f.split('-');
       return `${día}/${mes}`;
     });
   } else {
-    periodosLabels = periodosActuales.map(p => p.periodo || p);
+    periodosLabels = periodosParaUsar.map(p => p.periodo || p);
   }
   
   periodosLabels.forEach(label => {
@@ -407,14 +457,14 @@ function construirTablas() {
     : (DATOS_BRUTOS.fuentes[fuente] || []);
 
   const infoDiv = document.getElementById('info-mensaje');
+  const granLabel = document.getElementById('granularidad').value.replace('por_', '');
   if (subfuentesAMostrar.length === 1) {
-    infoDiv.textContent = `📊 ${fuente} > ${subfuentesAMostrar[0]} | Granularidad: ${document.getElementById('granularidad').value.replace('por_', '')}`;
+    infoDiv.textContent = `📊 ${fuente} > ${subfuentesAMostrar[0]} | Granularidad: ${granLabel}`;
   } else {
-    infoDiv.textContent = `📊 ${fuente} > Todas (${subfuentesAMostrar.length} sub-fuentes) | Granularidad: ${document.getElementById('granularidad').value.replace('por_', '')}`;
+    infoDiv.textContent = `📊 ${fuente} > Todas (${subfuentesAMostrar.length} sub-fuentes) | Granularidad: ${granLabel}`;
   }
   infoDiv.style.display = 'block';
 
-  // Calcular agregados
   const metricas = {
     'Total Creados': [],
     'Calificados': [],
@@ -425,9 +475,9 @@ function construirTablas() {
 
   let periodosParaTabla = [];
   if (granularidadActual === 'por_dia') {
-    periodosParaTabla = periodosActuales;
+    periodosParaTabla = periodosParaUsar;
   } else {
-    periodosParaTabla = periodosActuales.map(p => p.fechas);
+    periodosParaTabla = periodosParaUsar.map(p => p.fechas || [p]);
   }
 
   periodosParaTabla.forEach(periodo => {
@@ -477,7 +527,6 @@ function construirTablas() {
     tbodyResumen.appendChild(fila);
   });
 
-  // --- TABLA DETALLADA ---
   const thead = document.getElementById('thead');
   const tbody = document.getElementById('tbody');
   thead.innerHTML = '';
@@ -577,6 +626,8 @@ function actualizarDashboard() {
 
 function resetear() {
   document.getElementById('granularidad').value = 'por_dia';
+  document.getElementById('fecha-inicio').value = '';
+  document.getElementById('fecha-fin').value = '';
   document.getElementById('fuente').value = '';
   document.getElementById('subfuente').value = '';
   document.getElementById('subfuente').disabled = true;
